@@ -12,6 +12,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private wanderTarget: Phaser.Math.Vector2 | null = null;
   private wanderTimer: number = 0;
   private player: Player | null = null;
+  private isDying: boolean = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'enemy_bug');
@@ -121,6 +122,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   takeDamage(amount: number): boolean {
+    // Prevent damage if already dying
+    if (this.isDying || !this.active) return false;
+
     this.health -= amount;
 
     this.setTint(0xffffff);
@@ -136,6 +140,16 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   private die(): void {
+    // Prevent multiple die() calls
+    if (this.isDying) return;
+    this.isDying = true;
+
+    // Stop all movement and disable physics body
+    this.setVelocity(0, 0);
+    if (this.body) {
+      this.body.enable = false;
+    }
+
     this.scene.events.emit('enemyKilled', 10);
 
     // Death animation

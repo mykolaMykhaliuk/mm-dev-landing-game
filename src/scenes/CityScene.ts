@@ -225,6 +225,10 @@ export class CityScene extends Phaser.Scene {
     const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite;
     const enemyEntity = enemy as Enemy;
 
+    // Guard against invalid or already processed objects
+    if (!bulletSprite || !bulletSprite.active) return;
+    if (!enemyEntity || !enemyEntity.active) return;
+
     bulletSprite.setActive(false);
     bulletSprite.setVisible(false);
     bulletSprite.setVelocity(0, 0);
