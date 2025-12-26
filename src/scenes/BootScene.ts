@@ -14,14 +14,18 @@ export class BootScene extends Phaser.Scene {
     this.createIsometricTiles();
     this.createPlayerSprite();
     this.createEnemySprite();
+    this.createWizardSprite();
     this.createBulletSprite();
     this.createDoorSprite();
     this.createAmmoSprite();
+    this.createArmorSprites();
+    this.createHealthSprites();
     this.createWeaponIcons();
     this.createSwordSprite();
 
     this.scene.start('CityScene');
     this.scene.launch('UIScene');
+    this.scene.launch('ConversationScene');
   }
 
   private createLoadingBar(): void {
@@ -611,6 +615,98 @@ export class BootScene extends Phaser.Scene {
     graphics.destroy();
   }
 
+  private createWizardSprite(): void {
+    const graphics = this.make.graphics({ x: 0, y: 0 });
+
+    // Wizard robe (body) with gradient
+    graphics.fillStyle(0x5533aa, 1);
+    graphics.fillEllipse(16, 22, 18, 20);
+
+    // Robe highlight
+    graphics.fillStyle(0x6644bb, 0.7);
+    graphics.fillEllipse(14, 20, 12, 14);
+
+    // Robe shadow
+    graphics.fillStyle(0x4422aa, 0.8);
+    graphics.fillEllipse(18, 24, 12, 14);
+
+    // Belt
+    graphics.fillStyle(0x8b6914, 1);
+    graphics.fillRect(10, 18, 12, 2);
+
+    // Belt buckle
+    graphics.fillStyle(0xffd700, 1);
+    graphics.fillRect(14, 17, 4, 4);
+    graphics.fillStyle(0xffee88, 0.6);
+    graphics.fillRect(14, 17, 2, 2);
+
+    // Sleeves
+    graphics.fillStyle(0x5533aa, 1);
+    graphics.fillCircle(8, 18, 4);
+    graphics.fillCircle(24, 18, 4);
+
+    // Hands
+    graphics.fillStyle(0xffdd99, 1);
+    graphics.fillCircle(6, 20, 3);
+    graphics.fillCircle(26, 20, 3);
+
+    // Staff (left hand)
+    graphics.lineStyle(3, 0x8b6914, 1);
+    graphics.lineBetween(4, 22, 4, 6);
+
+    // Staff orb
+    graphics.fillStyle(0x4488ff, 1);
+    graphics.fillCircle(4, 4, 5);
+    graphics.fillStyle(0x66aaff, 0.8);
+    graphics.fillCircle(3, 3, 3);
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(3, 3, 1);
+
+    // Head with shading
+    graphics.fillStyle(0xffdd99, 1);
+    graphics.fillCircle(16, 12, 6);
+
+    // Head highlight
+    graphics.fillStyle(0xffeeaa, 0.8);
+    graphics.fillCircle(15, 11, 3);
+
+    // Eyes
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillCircle(14, 11, 1);
+    graphics.fillCircle(18, 11, 1);
+
+    // Eye shine
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(14, 10, 0.5);
+    graphics.fillCircle(18, 10, 0.5);
+
+    // Beard
+    graphics.fillStyle(0xcccccc, 1);
+    graphics.fillEllipse(16, 15, 8, 5);
+    graphics.fillStyle(0xeeeeee, 0.6);
+    graphics.fillEllipse(15, 14, 5, 3);
+
+    // Wizard hat
+    graphics.fillStyle(0x5533aa, 1);
+    graphics.fillTriangle(16, 0, 10, 8, 22, 8);
+
+    // Hat brim
+    graphics.fillStyle(0x6644bb, 1);
+    graphics.fillEllipse(16, 8, 14, 4);
+
+    // Hat highlight
+    graphics.fillStyle(0x7755cc, 0.6);
+    graphics.fillTriangle(16, 0, 13, 4, 16, 6);
+
+    // Hat stars
+    graphics.fillStyle(0xffff00, 1);
+    graphics.fillCircle(14, 4, 1);
+    graphics.fillCircle(18, 6, 1);
+
+    graphics.generateTexture('wizard', 32, 32);
+    graphics.destroy();
+  }
+
   private createBulletSprite(): void {
     const graphics = this.make.graphics({ x: 0, y: 0 });
 
@@ -753,6 +849,73 @@ export class BootScene extends Phaser.Scene {
 
     graphics.generateTexture('ammo', 16, 12);
     graphics.destroy();
+  }
+
+  private createArmorSprites(): void {
+    // Blue Armor (32x32)
+    const blueArmor = this.make.graphics({ x: 0, y: 0 });
+
+    // Shield shape base
+    blueArmor.fillStyle(0x2255aa, 1);
+    blueArmor.fillRoundedRect(6, 4, 20, 24, 4);
+
+    // Shield border/frame
+    blueArmor.lineStyle(2, 0x4488ff, 1);
+    blueArmor.strokeRoundedRect(6, 4, 20, 24, 4);
+
+    // Inner highlight
+    blueArmor.fillStyle(0x5599ff, 0.6);
+    blueArmor.fillRoundedRect(9, 7, 14, 18, 3);
+
+    // Metallic sheen
+    blueArmor.fillStyle(0x88ccff, 0.4);
+    blueArmor.fillRoundedRect(10, 8, 6, 16, 2);
+
+    // Center emblem/design
+    blueArmor.fillStyle(0x1144aa, 1);
+    blueArmor.fillCircle(16, 16, 4);
+    blueArmor.fillStyle(0x66aaff, 0.8);
+    blueArmor.fillCircle(16, 16, 2);
+
+    blueArmor.generateTexture('armor_blue', 32, 32);
+    blueArmor.destroy();
+  }
+
+  private createHealthSprites(): void {
+    // Red Heart (28x28)
+    const redHeart = this.make.graphics({ x: 0, y: 0 });
+
+    // Heart shape using two circles and triangle
+    // Left lobe
+    redHeart.fillStyle(0xff0044, 1);
+    redHeart.fillCircle(10, 10, 6);
+    // Right lobe
+    redHeart.fillCircle(18, 10, 6);
+    // Bottom point (triangle)
+    redHeart.beginPath();
+    redHeart.moveTo(4, 10);
+    redHeart.lineTo(24, 10);
+    redHeart.lineTo(14, 22);
+    redHeart.closePath();
+    redHeart.fillPath();
+
+    // Highlight on left lobe
+    redHeart.fillStyle(0xff6688, 0.7);
+    redHeart.fillCircle(9, 8, 3);
+
+    // Outline for definition
+    redHeart.lineStyle(1.5, 0xcc0033, 1);
+    redHeart.strokeCircle(10, 10, 6);
+    redHeart.strokeCircle(18, 10, 6);
+    redHeart.beginPath();
+    redHeart.moveTo(4, 10);
+    redHeart.lineTo(24, 10);
+    redHeart.lineTo(14, 22);
+    redHeart.closePath();
+    redHeart.strokePath();
+
+    redHeart.generateTexture('heart_red', 28, 28);
+    redHeart.destroy();
   }
 
   private createWeaponIcons(): void {
