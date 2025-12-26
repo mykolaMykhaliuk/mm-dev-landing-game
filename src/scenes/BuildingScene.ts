@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Ammo } from '../entities/Ammo';
-import { Armor, ArmorType } from '../entities/Armor';
+import { Armor } from '../entities/Armor';
 import { Health } from '../entities/Health';
 import { cartToIso } from '../utils/IsometricUtils';
 import { WeaponType } from '../weapons/IWeapon';
@@ -38,6 +38,13 @@ export class BuildingScene extends Phaser.Scene {
   private enemySpawnTimer: number = 0;
   private enemySpawnDelay: number = 3000;
   private maxEnemies: number = 15;
+  private baseSpawnDelay: number = 3000;
+  private baseMaxEnemies: number = 15;
+
+  // Event handlers (stored for proper cleanup)
+  private enemyKilledHandler?: (points: number) => void;
+  private playerDiedHandler?: () => void;
+  private scoreUpdatedHandler?: (newScore: number) => void;
 
   // Interior map: 0 = floor, 1 = wall, 2 = exit door
   private interiorMaps: number[][][] = [
@@ -219,6 +226,14 @@ export class BuildingScene extends Phaser.Scene {
     this.setupCollisions();
     this.setupEvents();
     this.displayPortfolioInfo();
+
+    // Get current score to maintain difficulty in battle arena
+    if (!this.isPortfolioBuilding) {
+      const uiScene = this.scene.get('UIScene') as any;
+      if (uiScene && uiScene.getScore) {
+        this.updateDifficultyBasedOnScore(uiScene.getScore());
+      }
+    }
 
     // Add building title with descriptive names
     const buildingNames = [
@@ -535,15 +550,45 @@ export class BuildingScene extends Phaser.Scene {
     }
   }
 
+  private updateDifficultyBasedOnScore(newScore: number): void {
+    if (this.isPortfolioBuilding) return; // Only battle arena
+
+    const difficultyLevel = Math.floor(newScore / 50);
+    this.maxEnemies = Math.min(this.baseMaxEnemies + difficultyLevel * 2, 30);
+    this.enemySpawnDelay = Math.max(this.baseSpawnDelay - difficultyLevel * 400, 1000);
+  }
+
   private setupCamera(): void {
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.setZoom(1.2); // Same zoom for all buildings
 
-    // Different zoom for battle arena (larger) vs portfolio buildings
-    if (!this.isPortfolioBuilding) {
-      this.cameras.main.setZoom(0.9); // Zoom out for huge battle arena
-    } else {
-      this.cameras.main.setZoom(1.2); // Zoom in for portfolio buildings
-    }
+    // Set world bounds based on isometric map size
+    const mapBounds = this.calculateMapBounds();
+    this.physics.world.setBounds(
+      mapBounds.minX - 100,
+      mapBounds.minY - 100,
+      mapBounds.width + 200,
+      mapBounds.height + 200
+    );
+  }
+
+  private calculateMapBounds(): { minX: number; minY: number; width: number; height: number } {
+    const topLeft = cartToIso(0, 0);
+    const topRight = cartToIso(this.mapWidth, 0);
+    const bottomLeft = cartToIso(0, this.mapHeight);
+    const bottomRight = cartToIso(this.mapWidth, this.mapHeight);
+
+    const minX = Math.min(topLeft.x, bottomLeft.x) + this.offsetX;
+    const maxX = Math.max(topRight.x, bottomRight.x) + this.offsetX;
+    const minY = topLeft.y + this.offsetY;
+    const maxY = bottomRight.y + this.offsetY + 100;
+
+    return {
+      minX,
+      minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
   }
 
   private setupCollisions(): void {
@@ -562,6 +607,7 @@ export class BuildingScene extends Phaser.Scene {
     // Player vs Walls
     if (this.wallBodies) {
       this.physics.add.collider(this.player, this.wallBodies);
+      this.physics.add.collider(this.enemies, this.wallBodies);
     }
   }
 
@@ -612,18 +658,29 @@ export class BuildingScene extends Phaser.Scene {
     const keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     keyE.on('down', () => this.tryExitBuilding());
 
-    // Enemy killed event
-    this.events.on('enemyKilled', (points: number) => {
+    // Enemy killed event - store handler for cleanup
+    this.enemyKilledHandler = (points: number) => {
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('addScore', points);
-    });
+    };
+    this.events.on('enemyKilled', this.enemyKilledHandler);
 
-    // Player died event
-    this.events.on('playerDied', () => {
+    // Player died event - store handler for cleanup
+    this.playerDiedHandler = () => {
       this.scene.pause();
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('showGameOver');
-    });
+    };
+    this.events.on('playerDied', this.playerDiedHandler);
+
+    // Listen for score updates for difficulty scaling
+    if (!this.isPortfolioBuilding) {
+      const uiScene = this.scene.get('UIScene');
+      this.scoreUpdatedHandler = (newScore: number) => {
+        this.updateDifficultyBasedOnScore(newScore);
+      };
+      uiScene.events.on('scoreUpdated', this.scoreUpdatedHandler);
+    }
   }
 
   private displayPortfolioInfo(): void {
@@ -749,6 +806,28 @@ export class BuildingScene extends Phaser.Scene {
     if (!this.isPortfolioBuilding && time > this.enemySpawnTimer) {
       this.spawnSingleEnemy();
       this.enemySpawnTimer = time + this.enemySpawnDelay;
+    }
+  }
+
+  shutdown(): void {
+    // Clean up event listeners to prevent accumulation on scene restart
+    if (this.enemyKilledHandler) {
+      this.events.off('enemyKilled', this.enemyKilledHandler);
+      this.enemyKilledHandler = undefined;
+    }
+
+    if (this.playerDiedHandler) {
+      this.events.off('playerDied', this.playerDiedHandler);
+      this.playerDiedHandler = undefined;
+    }
+
+    // Clean up score listener (only battle arena)
+    if (this.scoreUpdatedHandler) {
+      const uiScene = this.scene.get('UIScene');
+      if (uiScene && uiScene.events) {
+        uiScene.events.off('scoreUpdated', this.scoreUpdatedHandler);
+      }
+      this.scoreUpdatedHandler = undefined;
     }
   }
 }
