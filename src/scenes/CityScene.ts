@@ -465,6 +465,10 @@ export class CityScene extends Phaser.Scene {
       this.physics.add.collider(this.player, this.buildingBodies);
       // Enemy vs Building/Fence collisions
       this.physics.add.collider(this.enemies, this.buildingBodies);
+      // Bullet vs Building/Fence collisions
+      if (bullets) {
+        this.physics.add.collider(bullets, this.buildingBodies, this.handleBulletBuildingCollision, undefined, this);
+      }
     }
   }
 
@@ -508,6 +512,40 @@ export class CityScene extends Phaser.Scene {
     this.time.delayedCall(150, () => hitEffect.destroy());
 
     enemyEntity.takeDamage(20);
+  }
+
+  private handleBulletBuildingCollision(
+    bullet: Phaser.Types.Physics.Arcade.GameObjectWithBody | Phaser.Tilemaps.Tile,
+    _building: Phaser.Types.Physics.Arcade.GameObjectWithBody | Phaser.Tilemaps.Tile
+  ): void {
+    const bulletSprite = bullet as Phaser.Physics.Arcade.Sprite;
+
+    // Guard against invalid or already processed objects
+    if (!bulletSprite || !bulletSprite.active) return;
+
+    // Disable bullet completely to prevent further collisions
+    bulletSprite.setActive(false);
+    bulletSprite.setVisible(false);
+    bulletSprite.setVelocity(0, 0);
+    if (bulletSprite.body) {
+      bulletSprite.body.enable = false;
+    }
+
+    // Impact particle effect
+    const impactEffect = this.add.particles(
+      bulletSprite.x,
+      bulletSprite.y,
+      'bullet',
+      {
+        speed: { min: 20, max: 60 },
+        scale: { start: 0.2, end: 0 },
+        lifespan: 100,
+        quantity: 3,
+        tint: [0x888888, 0x666666, 0x444444],
+      }
+    );
+    impactEffect.setDepth(bulletSprite.y + 10);
+    this.time.delayedCall(100, () => impactEffect.destroy());
   }
 
   private setupEvents(): void {
