@@ -3,85 +3,131 @@ import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { cartToIso } from '../utils/IsometricUtils';
 import { WeaponType } from '../weapons/IWeapon';
+import { getPortfolioForBuilding } from '../config/portfolioData';
 
 interface BuildingData {
   buildingId: number;
   playerHealth: number;
   playerAmmo: number;
   currentWeapon?: WeaponType;
+  isPortfolio?: boolean;
 }
 
 export class BuildingScene extends Phaser.Scene {
   private player!: Player;
   private enemies!: Phaser.Physics.Arcade.Group;
   private buildingId: number = 0;
+  private isPortfolioBuilding: boolean = false;
   private initialHealth: number = 100;
   private initialAmmo: number = 30;
   private initialWeapon: WeaponType = WeaponType.GUN;
-  private mapWidth: number = 12;
-  private mapHeight: number = 10;
+  private mapWidth: number = 20;
+  private mapHeight: number = 16;
   private offsetX: number = 400;
-  private offsetY: number = 150;
-  private currentScore: number = 0;
+  private offsetY: number = 100;
 
   // Interior map: 0 = floor, 1 = wall, 2 = exit door
   private interiorMaps: number[][][] = [
-    // Building 0
+    // Building 0 - About & Skills (Open gallery layout)
     [
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
-      [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1],
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ],
-    // Building 1
+    // Building 1 - Projects (Gallery with dividers)
     [
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1],
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ],
-    // Building 2
+    // Building 2 - Experience (Office layout)
     [
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-      [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
-      [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
-      [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1],
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ],
-    // Building 3
+    // Building 3 - Contact (Reception layout)
     [
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1],
-      [1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-      [1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-      [1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-      [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1],
-      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-      [1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1],
-      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1],
+      [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+      [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+      [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+      [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+      [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+      [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ],
+    // Building 4 - Education (Library layout)
+    [
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
+      [1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ],
   ];
 
   private exitPosition: { x: number; y: number } = { x: 0, y: 0 };
   private wallBodies: Phaser.Physics.Arcade.StaticGroup | null = null;
+  private portfolioTexts: Phaser.GameObjects.Text[] = [];
 
   constructor() {
     super({ key: 'BuildingScene' });
@@ -89,18 +135,13 @@ export class BuildingScene extends Phaser.Scene {
 
   init(data: BuildingData): void {
     this.buildingId = data.buildingId % this.interiorMaps.length;
+    this.isPortfolioBuilding = data.isPortfolio ?? false;
     this.initialHealth = data.playerHealth || 100;
     this.initialAmmo = data.playerAmmo || 30;
     this.initialWeapon = data.currentWeapon || WeaponType.GUN;
   }
 
   create(): void {
-    // Get current score from UIScene to maintain difficulty
-    const uiScene = this.scene.get('UIScene') as any;
-    if (uiScene && uiScene.getScore) {
-      this.currentScore = uiScene.getScore();
-    }
-
     this.createInterior();
     this.createPlayer();
     this.createEnemyGroup();
@@ -108,11 +149,44 @@ export class BuildingScene extends Phaser.Scene {
     this.setupCamera();
     this.setupCollisions();
     this.setupEvents();
+    this.displayPortfolioInfo();
 
-    // Add building title
-    this.add.text(512, 30, `Building ${this.buildingId + 1}`, {
-      fontSize: '24px',
-      color: '#ffffff',
+    // Add building title with descriptive names
+    const buildingNames = [
+      'About Me & Skills',           // Building 1 (buildingId 0)
+      'Featured Projects',            // Building 2 (buildingId 1)
+      'Work Experience',              // Building 3 (buildingId 2)
+      'Get In Touch',                 // Building 4 (buildingId 3)
+      'Education & Certifications',   // Building 5 (buildingId 4)
+    ];
+
+    let buildingTitle = '';
+    let titleColor = '#ffffff';
+
+    if (this.isPortfolioBuilding) {
+      // Portfolio buildings
+      buildingTitle = buildingNames[this.buildingId];
+      titleColor = '#00ffff';
+    } else {
+      // Combat buildings
+      buildingTitle = 'Battle Arena';
+      titleColor = '#ff0000';
+    }
+
+    // Get proper center position - centered
+    const centerX = this.cameras.main.width / 2;
+    const titleY = 30;
+
+    // Add background for better visibility
+    const titleBg = this.add.rectangle(centerX, titleY, 500, 40, 0x000000, 0.6);
+    titleBg.setScrollFactor(0).setDepth(999);
+
+    this.add.text(centerX, titleY, buildingTitle, {
+      fontSize: '22px',
+      fontStyle: 'bold',
+      color: titleColor,
+      stroke: '#000000',
+      strokeThickness: 3,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
   }
 
@@ -192,8 +266,8 @@ export class BuildingScene extends Phaser.Scene {
   }
 
   private createPlayer(): void {
-    // Start near center
-    const startTile = cartToIso(6, 5);
+    // Start near center (adjusted for larger building)
+    const startTile = cartToIso(10, 8);
     const startX = startTile.x + this.offsetX;
     const startY = startTile.y + this.offsetY;
 
@@ -217,15 +291,16 @@ export class BuildingScene extends Phaser.Scene {
   }
 
   private spawnInteriorEnemies(): void {
-    const currentMap = this.interiorMaps[this.buildingId];
+    // Portfolio buildings are enemy-free showcase spaces
+    // Battle buildings have normal enemy spawning
+    if (this.isPortfolioBuilding) {
+      // No enemies in portfolio buildings
+      return;
+    }
 
-    // Scale enemy count based on score
-    const difficultyLevel = Math.floor(this.currentScore / 50);
-    const baseMin = 2;
-    const baseMax = 4;
-    const minEnemies = Math.min(baseMin + difficultyLevel, 8);
-    const maxEnemies = Math.min(baseMax + difficultyLevel, 10);
-    const numEnemies = Phaser.Math.Between(minEnemies, maxEnemies);
+    // Normal enemy spawning for non-portfolio buildings
+    const currentMap = this.interiorMaps[this.buildingId];
+    const numEnemies = Phaser.Math.Between(4, 8);
 
     for (let i = 0; i < numEnemies; i++) {
       let attempts = 0;
@@ -334,12 +409,103 @@ export class BuildingScene extends Phaser.Scene {
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('showGameOver');
     });
+  }
 
-    // Listen for score updates from UIScene
-    const uiScene = this.scene.get('UIScene');
-    uiScene.events.on('scoreUpdated', (newScore: number) => {
-      this.currentScore = newScore;
-    });
+  private displayPortfolioInfo(): void {
+    // Only display portfolio info in portfolio buildings
+    if (!this.isPortfolioBuilding) {
+      return;
+    }
+
+    const portfolioSection = getPortfolioForBuilding(this.buildingId);
+
+    // Clear any existing text
+    this.portfolioTexts.forEach(text => text.destroy());
+    this.portfolioTexts = [];
+
+    // Display title with background panel - centered
+    const titleX = this.cameras.main.width / 2;
+    const titleY = 80;
+
+    const titleBg = this.add.rectangle(titleX, titleY, 600, 45, 0x000000, 0.4);
+    titleBg.setScrollFactor(0).setDepth(999);
+
+    const title = this.add.text(titleX, titleY, portfolioSection.title, {
+      fontSize: '28px',
+      fontStyle: 'bold',
+      color: '#00ffff',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+
+    this.portfolioTexts.push(title);
+
+    // Display content or projects
+    let startY = 140;
+
+    if (portfolioSection.projects && portfolioSection.projects.length > 0) {
+      // Display projects - centered
+      const projectX = this.cameras.main.width / 2;
+      portfolioSection.projects.forEach((project, index) => {
+        const projectY = startY + (index * 140);
+
+        // Project background
+        const projectBg = this.add.rectangle(projectX, projectY + 30, 700, 120, 0x000000, 0.3);
+        projectBg.setScrollFactor(0).setDepth(998);
+
+        // Project title
+        const projectTitle = this.add.text(projectX, projectY, project.title, {
+          fontSize: '22px',
+          fontStyle: 'bold',
+          color: '#ffff00',
+          stroke: '#000000',
+          strokeThickness: 2,
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+        this.portfolioTexts.push(projectTitle);
+
+        // Project description
+        const projectDesc = this.add.text(projectX, projectY + 30, project.description, {
+          fontSize: '16px',
+          color: '#ffffff',
+          wordWrap: { width: 650 },
+          align: 'center',
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+        this.portfolioTexts.push(projectDesc);
+
+        // Technologies
+        const techText = project.technologies.join(' • ');
+        const projectTech = this.add.text(projectX, projectY + 60, techText, {
+          fontSize: '14px',
+          color: '#00ff00',
+          fontStyle: 'italic',
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+        this.portfolioTexts.push(projectTech);
+      });
+    } else if (portfolioSection.content && portfolioSection.content.length > 0) {
+      // Display regular content - centered
+      const contentX = this.cameras.main.width / 2;
+      const contentBg = this.add.rectangle(contentX, 310, 700, 400, 0x000000, 0.3);
+      contentBg.setScrollFactor(0).setDepth(998);
+
+      const contentText = portfolioSection.content.join('\n');
+      const content = this.add.text(contentX - 350, startY, contentText, { // Left-aligned from center
+        fontSize: '18px',
+        color: '#ffffff',
+        lineSpacing: 8,
+        fontFamily: 'monospace',
+      }).setScrollFactor(0).setDepth(1000);
+      this.portfolioTexts.push(content);
+    }
+
+    // Add instruction at bottom - centered
+    const instruction = this.add.text(this.cameras.main.width / 2, 570, 'Press E at the exit to leave', {
+      fontSize: '16px',
+      color: '#aaaaaa',
+      fontStyle: 'italic',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 },
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+    this.portfolioTexts.push(instruction);
   }
 
   private tryExitBuilding(): void {

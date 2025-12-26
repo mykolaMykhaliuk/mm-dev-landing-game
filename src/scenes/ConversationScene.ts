@@ -160,7 +160,7 @@ export class ConversationScene extends Phaser.Scene {
     this.getWizardResponse(question);
   }
 
-  private addMessage(sender: string, message: string, color: string): void {
+  private addMessage(sender: string, message: string, _color: string): void {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const formattedMessage = `[${timestamp}] ${sender}: ${message}`;
 
