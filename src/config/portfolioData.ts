@@ -19,17 +19,24 @@ export const portfolioData: { [key: string]: PortfolioSection } = {
   about: {
     title: "About Me & Skills",
     content: [
-      "Full Stack Developer",
+      "Mykola Mykhaliuk",
+      "Senior .NET Full Stack Developer",
+      "",
+      "With background of more than 12 years experience in",
+      "planning, developing, and maintaining scalable, robust,",
+      "and secure software systems written in Microsoft and",
+      "open source technologies.",
       "",
       "SKILLS:",
-      "• JavaScript/TypeScript",
-      "• React, Node.js",
-      "• Phaser 3 Game Development",
-      "• Python, Java",
-      "• Database Design (SQL/NoSQL)",
-      "• Cloud Services (AWS/Azure)",
+      "• C# ASP.NET + Core",
+      "• Angular, JavaScript, TypeScript",
+      "• Microservices (RabbitMQ, SignalR)",
+      "• SQL Server, MongoDB, EntityFramework",
+      "• Jenkins, Docker, CI/CD",
+      "• Azure Cloud Solutions",
+      "• Agile/Scrum",
       "",
-      "Add your skills here!"
+      "Based in Mainz, Germany"
     ]
   },
 
@@ -39,19 +46,19 @@ export const portfolioData: { [key: string]: PortfolioSection } = {
     content: [],
     projects: [
       {
-        title: "Isometric RPG Demo",
-        description: "Browser-based RPG with procedural generation, dual weapon system, and dynamic difficulty",
-        technologies: ["Phaser 3", "TypeScript", "Vite"]
+        title: "Prexello - AI Cloud Solution",
+        description: "AI Cloud solution for monitoring industrial systems and process quality. Highly scalable cloud architecture with multi-layer services.",
+        technologies: ["ASP.NET Core", ".NET 5", "MongoDB", "MSSQL", "Jenkins", "Docker", "IdentityServer"]
       },
       {
-        title: "Project 2",
-        description: "Add your project description here",
-        technologies: ["Tech1", "Tech2"]
+        title: "Timeboard - Time Management",
+        description: "ASP.NET time management system for temporary workers with mobile hybrid app support.",
+        technologies: ["ASP.NET", "C#", "Apache Cordova", "Ionic", "AngularJS", "WebApi"]
       },
       {
-        title: "Project 3",
-        description: "Add your project description here",
-        technologies: ["Tech1", "Tech2"]
+        title: "Panoptix Carbon Reporter",
+        description: "Energy accounting and emissions management web portal with XML-based workflow engine.",
+        technologies: ["ASP.NET MVC", "NHibernate", "JavaScript", "jQuery", "Bootstrap"]
       }
     ]
   },
@@ -60,16 +67,26 @@ export const portfolioData: { [key: string]: PortfolioSection } = {
   experience: {
     title: "Work Experience",
     content: [
-      "CURRENT POSITION",
-      "Company Name | 2023 - Present",
-      "• Achievement or responsibility",
-      "• Another achievement",
+      "SENIOR DEVELOPER - TEAM LEAD",
+      "mi Solutions & Consulting GmbH",
+      "April 2018 - Present | Hochheim, Germany",
+      "• Built entire agile development team",
+      "• Designed highly scalable cloud solutions",
+      "• Implemented CI/CD automation with Jenkins",
+      "• Security with IdentityServer3/4 + 2FA",
       "",
-      "PREVIOUS POSITION",
-      "Company Name | 2021 - 2023",
-      "• Your accomplishments here",
+      "SENIOR FULL STACK ASP.NET DEVELOPER",
+      "JobFrame GmbH",
+      "October 2014 - March 2018 | Mainz, Germany",
+      "• Developed time management system",
+      "• Created hybrid mobile app (Cordova + Ionic)",
+      "• WCAG 2.0 accessibility implementation",
       "",
-      "Edit with your experience!"
+      "MIDDLE ASP.NET DEVELOPER",
+      "GlobalLogic Ukraine - Johnson Controls",
+      "September 2012 - February 2014 | Kyiv",
+      "• Energy accounting web portal development",
+      "• XML-based workflow engine design"
     ]
   },
 
@@ -78,15 +95,21 @@ export const portfolioData: { [key: string]: PortfolioSection } = {
     title: "Education & Certifications",
     content: [
       "EDUCATION",
-      "University Name",
-      "Degree in Computer Science",
-      "Graduated: Year",
+      "National Technical University of Ukraine",
+      "\"Kyiv Polytechnic Institute\"",
+      "",
+      "Master of Computer Systems",
+      "Flexible Computerized Systems and Robotics",
+      "2008 - 2010",
+      "",
+      "Bachelor of Computerized System,",
+      "Automation and Management",
+      "2004 - 2008",
       "",
       "CERTIFICATIONS",
-      "• Certification Name",
-      "• Another Certification",
-      "",
-      "Add your credentials here!"
+      "• Zertifikat telc Deutsch B1 \"Gut\"",
+      "• MS: Programming in HTML5 with JS & CSS3",
+      "• Microsoft Certified Professional (MCPS)"
     ]
   },
 
@@ -96,17 +119,20 @@ export const portfolioData: { [key: string]: PortfolioSection } = {
     content: [
       "CONTACT INFORMATION",
       "",
-      "Email: your.email@example.com",
+      "Email: mykola.mykhaliuk@gmail.com",
+      "Phone: +49 157 55968525",
+      "",
       "LinkedIn: linkedin.com/in/mykola-mykhaliuk",
-      "GitHub: github.com/yourusername",
-      "Portfolio: yourwebsite.com",
+      "GitHub: github.com/mykolaMykhaliuk",
+      "XING: xing.com/profile/Mykola_Mykhaliuk",
+      "",
+      "Web CV: webcv.azurewebsites.net",
+      "Blog: mmblog.azurewebsites.net",
       "",
       "LOCATION",
-      "Your City, Country",
+      "55122 Mainz, Germany",
       "",
-      "Open to opportunities!",
-      "",
-      "Update with your contact info"
+      "Open to opportunities!"
     ]
   },
 };
