@@ -339,6 +339,58 @@ export class BootScene extends Phaser.Scene {
 
     wallGraphics.generateTexture('tile_wall', TILE_WIDTH, TILE_HEIGHT + wallHeight);
     wallGraphics.destroy();
+
+    // Fence tile - simple centered post with connection rails
+    const fenceGraphics = this.make.graphics({ x: 0, y: 0 });
+    const fenceHeight = 20;
+    const postWidth = 4;
+    const railWidth = 2;
+
+    // Ground base
+    fenceGraphics.fillStyle(0x5a8d6a, 1);
+    fenceGraphics.beginPath();
+    fenceGraphics.moveTo(TILE_WIDTH / 2, 0);
+    fenceGraphics.lineTo(TILE_WIDTH, TILE_HEIGHT / 2);
+    fenceGraphics.lineTo(TILE_WIDTH / 2, TILE_HEIGHT);
+    fenceGraphics.lineTo(0, TILE_HEIGHT / 2);
+    fenceGraphics.closePath();
+    fenceGraphics.fillPath();
+
+    // Center post - simple vertical rectangle
+    const postX = TILE_WIDTH / 2 - postWidth / 2;
+    const postY = TILE_HEIGHT / 2;
+
+    // Horizontal rails connecting to adjacent tiles
+    // Top rail - connects horizontally across the tile
+    fenceGraphics.fillStyle(0x7a5a10, 1);
+    fenceGraphics.fillRect(0, postY + 5, TILE_WIDTH, railWidth);
+
+    // Bottom rail
+    fenceGraphics.fillRect(0, postY + 12, TILE_WIDTH, railWidth);
+
+    // Rail highlights
+    fenceGraphics.fillStyle(0x8b6914, 0.5);
+    fenceGraphics.fillRect(0, postY + 5, TILE_WIDTH, 1);
+    fenceGraphics.fillRect(0, postY + 12, TILE_WIDTH, 1);
+
+    // Post shadow/back
+    fenceGraphics.fillStyle(0x6a4910, 1);
+    fenceGraphics.fillRect(postX + 1, postY, postWidth, fenceHeight);
+
+    // Post main
+    fenceGraphics.fillStyle(0x8b6914, 1);
+    fenceGraphics.fillRect(postX, postY, postWidth, fenceHeight);
+
+    // Post highlight
+    fenceGraphics.fillStyle(0xab8934, 0.6);
+    fenceGraphics.fillRect(postX, postY, 1, fenceHeight);
+
+    // Post top cap
+    fenceGraphics.fillStyle(0x9b7924, 1);
+    fenceGraphics.fillRect(postX - 1, postY - 2, postWidth + 2, 2);
+
+    fenceGraphics.generateTexture('tile_fence', TILE_WIDTH, TILE_HEIGHT + fenceHeight);
+    fenceGraphics.destroy();
   }
 
   private createPlayerSprite(): void {
