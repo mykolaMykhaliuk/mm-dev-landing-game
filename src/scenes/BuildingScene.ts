@@ -138,11 +138,11 @@ export class BuildingScene extends Phaser.Scene {
             this.exitPosition = { x: screenX, y: screenY };
 
             const exitIndicator = this.add.circle(screenX, screenY, 12, 0x00ff00, 0.8);
-            exitIndicator.setDepth(y + 50);
-            
+            exitIndicator.setDepth(y + 150);
+
             // Outer glow
             const exitGlow = this.add.circle(screenX, screenY, 14, 0x00ff00, 0.4);
-            exitGlow.setDepth(y + 49);
+            exitGlow.setDepth(y + 149);
             
             // Pulsing animation
             this.tweens.add({
@@ -164,7 +164,7 @@ export class BuildingScene extends Phaser.Scene {
               stroke: '#00ff00',
               strokeThickness: 2,
             }).setOrigin(0.5);
-            exitHint.setDepth(y + 51);
+            exitHint.setDepth(y + 151);
             
             // Hint glow
             this.tweens.add({

@@ -151,11 +151,11 @@ export class CityScene extends Phaser.Scene {
 
           // Add door indicator with glow effect
           const doorIndicator = this.add.circle(screenX, screenY, 10, 0xffff00, 0.7);
-          doorIndicator.setDepth(y + 50);
-          
+          doorIndicator.setDepth(y + 150);
+
           // Outer glow
           const doorGlow = this.add.circle(screenX, screenY, 12, 0xffff00, 0.3);
-          doorGlow.setDepth(y + 49);
+          doorGlow.setDepth(y + 149);
           
           // Pulsing animation
           this.tweens.add({
@@ -178,7 +178,7 @@ export class CityScene extends Phaser.Scene {
             stroke: '#ffff00',
             strokeThickness: 2,
           }).setOrigin(0.5);
-          hint.setDepth(y + 51);
+          hint.setDepth(y + 151);
           
           // Hint glow
           this.tweens.add({
