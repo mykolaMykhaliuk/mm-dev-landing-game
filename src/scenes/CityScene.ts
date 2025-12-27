@@ -108,6 +108,8 @@ export class CityScene extends Phaser.Scene {
     [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
   ];
 
+  private scoreUpdatedHandler?: (newScore: number) => void;
+
   constructor() {
     super({ key: 'CityScene' });
   }
@@ -118,9 +120,15 @@ export class CityScene extends Phaser.Scene {
     this.initialAmmo = data?.playerAmmo;
     this.initialArmor = data?.playerArmor;
     this.initialWeapon = data?.currentWeapon;
+    
+    // Clean up arrays to prevent memory leaks on scene restart
+    this.obstructions = [];
+    this.doors = [];
   }
 
   create(): void {
+    this.events.on('shutdown', this.shutdown, this);
+
     this.createMap();
     this.createPlayer();
     this.createWizard();
@@ -595,9 +603,28 @@ export class CityScene extends Phaser.Scene {
 
     // Listen for score updates from UIScene
     const uiScene = this.scene.get('UIScene');
-    uiScene.events.on('scoreUpdated', (newScore: number) => {
+    
+    // Store handler reference for cleanup
+    this.scoreUpdatedHandler = (newScore: number) => {
       this.updateDifficultyBasedOnScore(newScore);
-    });
+    };
+    
+    if (uiScene) {
+      uiScene.events.on('scoreUpdated', this.scoreUpdatedHandler);
+    }
+  }
+  
+  shutdown(): void {
+    if (this.scoreUpdatedHandler) {
+      const uiScene = this.scene.get('UIScene');
+      if (uiScene) {
+        uiScene.events.off('scoreUpdated', this.scoreUpdatedHandler);
+      }
+      this.scoreUpdatedHandler = undefined;
+    }
+    
+    this.obstructions = [];
+    this.doors = [];
   }
 
   private tryEnterBuilding(): void {

@@ -212,6 +212,8 @@ export class BuildingScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.events.on('shutdown', this.shutdown, this);
+    
     this.createInterior();
     this.createPlayer();
     this.createEnemyGroup();
