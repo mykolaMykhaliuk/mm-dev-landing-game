@@ -45,6 +45,13 @@ export class CityScene extends Phaser.Scene {
   private maxEnemies: number = 10;
   private baseMaxEnemies: number = 10;
 
+  // Event handlers (stored for proper cleanup on restarts)
+  private enemyKilledHandler?: (points: number) => void;
+  private playerDiedHandler?: () => void;
+  private scoreUpdatedHandler?: (newScore: number) => void;
+  private enterKey?: Phaser.Input.Keyboard.Key;
+  private enterKeyHandler?: () => void;
+
   // Data passed from BuildingScene when returning
   private fromBuildingId?: number;
   private initialHealth?: number;
@@ -576,28 +583,64 @@ export class CityScene extends Phaser.Scene {
   }
 
   private setupEvents(): void {
+    // Ensure we don't accumulate listeners across scene restarts
+    this.shutdown();
+
+    // Guarantee cleanup when the scene is stopped
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+
     // Enter building on E key
-    const keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-    keyE.on('down', () => this.tryEnterBuilding());
+    this.enterKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.enterKeyHandler = () => this.tryEnterBuilding();
+    this.enterKey.on('down', this.enterKeyHandler);
 
     // Enemy killed event
-    this.events.on('enemyKilled', (points: number) => {
+    this.enemyKilledHandler = (points: number) => {
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('addScore', points);
-    });
+    };
+    this.events.on('enemyKilled', this.enemyKilledHandler);
 
     // Player died event
-    this.events.on('playerDied', () => {
+    this.playerDiedHandler = () => {
       this.scene.pause();
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('showGameOver');
-    });
+    };
+    this.events.on('playerDied', this.playerDiedHandler);
 
     // Listen for score updates from UIScene
     const uiScene = this.scene.get('UIScene');
-    uiScene.events.on('scoreUpdated', (newScore: number) => {
+    this.scoreUpdatedHandler = (newScore: number) => {
       this.updateDifficultyBasedOnScore(newScore);
-    });
+    };
+    uiScene.events.on('scoreUpdated', this.scoreUpdatedHandler);
+  }
+
+  shutdown(): void {
+    if (this.enemyKilledHandler) {
+      this.events.off('enemyKilled', this.enemyKilledHandler);
+      this.enemyKilledHandler = undefined;
+    }
+
+    if (this.playerDiedHandler) {
+      this.events.off('playerDied', this.playerDiedHandler);
+      this.playerDiedHandler = undefined;
+    }
+
+    if (this.enterKey && this.enterKeyHandler) {
+      this.enterKey.off('down', this.enterKeyHandler);
+      this.enterKeyHandler = undefined;
+      this.enterKey = undefined;
+    }
+
+    if (this.scoreUpdatedHandler) {
+      const uiScene = this.scene.get('UIScene');
+      if (uiScene && uiScene.events) {
+        uiScene.events.off('scoreUpdated', this.scoreUpdatedHandler);
+      }
+      this.scoreUpdatedHandler = undefined;
+    }
   }
 
   private tryEnterBuilding(): void {

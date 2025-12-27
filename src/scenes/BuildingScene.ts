@@ -45,6 +45,8 @@ export class BuildingScene extends Phaser.Scene {
   private enemyKilledHandler?: (points: number) => void;
   private playerDiedHandler?: () => void;
   private scoreUpdatedHandler?: (newScore: number) => void;
+  private exitKey?: Phaser.Input.Keyboard.Key;
+  private exitKeyHandler?: () => void;
 
   // Interior map: 0 = floor, 1 = wall, 2 = exit door
   private interiorMaps: number[][][] = [
@@ -654,9 +656,16 @@ export class BuildingScene extends Phaser.Scene {
   }
 
   private setupEvents(): void {
+    // Ensure we don't accumulate listeners across scene restarts
+    this.shutdown();
+
+    // Guarantee cleanup when the scene is stopped
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+
     // Exit building on E key
-    const keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-    keyE.on('down', () => this.tryExitBuilding());
+    this.exitKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.exitKeyHandler = () => this.tryExitBuilding();
+    this.exitKey.on('down', this.exitKeyHandler);
 
     // Enemy killed event - store handler for cleanup
     this.enemyKilledHandler = (points: number) => {
@@ -819,6 +828,12 @@ export class BuildingScene extends Phaser.Scene {
     if (this.playerDiedHandler) {
       this.events.off('playerDied', this.playerDiedHandler);
       this.playerDiedHandler = undefined;
+    }
+
+    if (this.exitKey && this.exitKeyHandler) {
+      this.exitKey.off('down', this.exitKeyHandler);
+      this.exitKeyHandler = undefined;
+      this.exitKey = undefined;
     }
 
     // Clean up score listener (only battle arena)
