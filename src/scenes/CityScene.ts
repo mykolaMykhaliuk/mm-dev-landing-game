@@ -52,6 +52,11 @@ export class CityScene extends Phaser.Scene {
   private initialArmor?: number;
   private initialWeapon?: WeaponType;
 
+  // Event handlers (stored for proper cleanup)
+  private enemyKilledHandler?: (points: number) => void;
+  private playerDiedHandler?: () => void;
+  private scoreUpdatedHandler?: (newScore: number) => void;
+
   // Building labels for the four central buildings
   private buildingLabels: BuildingLabel[] = [
     { text: 'SKILLS', centerX: 11.5, centerY: 14 },
@@ -580,24 +585,33 @@ export class CityScene extends Phaser.Scene {
     const keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     keyE.on('down', () => this.tryEnterBuilding());
 
-    // Enemy killed event
-    this.events.on('enemyKilled', (points: number) => {
+    // Enemy killed event - store handler for cleanup
+    this.enemyKilledHandler = (points: number) => {
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('addScore', points);
-    });
+    };
+    // Remove any existing listeners first to prevent accumulation
+    this.events.off('enemyKilled', this.enemyKilledHandler);
+    this.events.on('enemyKilled', this.enemyKilledHandler);
 
-    // Player died event
-    this.events.on('playerDied', () => {
+    // Player died event - store handler for cleanup
+    this.playerDiedHandler = () => {
       this.scene.pause();
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('showGameOver');
-    });
+    };
+    // Remove any existing listeners first to prevent accumulation
+    this.events.off('playerDied', this.playerDiedHandler);
+    this.events.on('playerDied', this.playerDiedHandler);
 
     // Listen for score updates from UIScene
     const uiScene = this.scene.get('UIScene');
-    uiScene.events.on('scoreUpdated', (newScore: number) => {
+    this.scoreUpdatedHandler = (newScore: number) => {
       this.updateDifficultyBasedOnScore(newScore);
-    });
+    };
+    // Remove any existing listeners first to prevent accumulation
+    uiScene.events.off('scoreUpdated', this.scoreUpdatedHandler);
+    uiScene.events.on('scoreUpdated', this.scoreUpdatedHandler);
   }
 
   private tryEnterBuilding(): void {
@@ -678,6 +692,27 @@ export class CityScene extends Phaser.Scene {
     if (time > this.spawnTimer) {
       this.spawnEnemy();
       this.spawnTimer = time + this.spawnDelay;
+    }
+  }
+
+  shutdown(): void {
+    // Clean up event listeners to prevent accumulation on scene restart
+    if (this.enemyKilledHandler) {
+      this.events.off('enemyKilled', this.enemyKilledHandler);
+      this.enemyKilledHandler = undefined;
+    }
+
+    if (this.playerDiedHandler) {
+      this.events.off('playerDied', this.playerDiedHandler);
+      this.playerDiedHandler = undefined;
+    }
+
+    if (this.scoreUpdatedHandler) {
+      const uiScene = this.scene.get('UIScene');
+      if (uiScene && uiScene.events) {
+        uiScene.events.off('scoreUpdated', this.scoreUpdatedHandler);
+      }
+      this.scoreUpdatedHandler = undefined;
     }
   }
 }

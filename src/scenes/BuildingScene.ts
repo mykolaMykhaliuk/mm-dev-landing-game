@@ -659,10 +659,13 @@ export class BuildingScene extends Phaser.Scene {
     keyE.on('down', () => this.tryExitBuilding());
 
     // Enemy killed event - store handler for cleanup
+    // Use .once() OR manually remove in shutdown - but better to prevent duplicates
     this.enemyKilledHandler = (points: number) => {
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('addScore', points);
     };
+    // Remove any existing listeners first to prevent accumulation
+    this.events.off('enemyKilled', this.enemyKilledHandler);
     this.events.on('enemyKilled', this.enemyKilledHandler);
 
     // Player died event - store handler for cleanup
@@ -671,6 +674,8 @@ export class BuildingScene extends Phaser.Scene {
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('showGameOver');
     };
+    // Remove any existing listeners first to prevent accumulation
+    this.events.off('playerDied', this.playerDiedHandler);
     this.events.on('playerDied', this.playerDiedHandler);
 
     // Listen for score updates for difficulty scaling
@@ -679,6 +684,8 @@ export class BuildingScene extends Phaser.Scene {
       this.scoreUpdatedHandler = (newScore: number) => {
         this.updateDifficultyBasedOnScore(newScore);
       };
+      // Remove any existing listeners first to prevent accumulation
+      uiScene.events.off('scoreUpdated', this.scoreUpdatedHandler);
       uiScene.events.on('scoreUpdated', this.scoreUpdatedHandler);
     }
   }
