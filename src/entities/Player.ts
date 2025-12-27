@@ -366,4 +366,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.scene.events.emit('healthChanged', this.health, this.maxHealth);
     this.scene.events.emit('armorChanged', this.armor, this.maxArmor);
   }
+
+  // Reset weapons for new scene to clear stale bullets and collision handlers
+  resetWeaponsForNewScene(newScene: Phaser.Scene): void {
+    this.weaponManager.resetForNewScene(newScene);
+  }
 }

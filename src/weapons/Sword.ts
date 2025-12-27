@@ -197,4 +197,11 @@ export class Sword implements IWeapon {
   isAttacking(): boolean {
     return this.attacking;
   }
+
+  // Update scene reference for new scene
+  resetForNewScene(newScene: Phaser.Scene): void {
+    this.scene = newScene;
+    this.currentSwingHitEnemies.clear();
+    this.attacking = false;
+  }
 }

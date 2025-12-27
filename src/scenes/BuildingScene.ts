@@ -367,6 +367,9 @@ export class BuildingScene extends Phaser.Scene {
 
     this.player = new Player(this, startX, startY);
 
+    // CRITICAL: Reset weapons for new scene to clear stale bullets and collision handlers
+    this.player.resetWeaponsForNewScene(this);
+
     // Restore player stats
     if (this.initialHealth < 100) {
       this.player.takeDamage(100 - this.initialHealth);
@@ -623,8 +626,12 @@ export class BuildingScene extends Phaser.Scene {
     const enemyEntity = enemy as Enemy;
 
     // Guard against invalid or already processed objects
-    if (!bulletSprite || !bulletSprite.active) return;
+    if (!bulletSprite || !bulletSprite.active || !bulletSprite.visible) return;
+    if (!bulletSprite.body || !bulletSprite.body.enable) return;
     if (!enemyEntity || !enemyEntity.active || enemyEntity.isEnemyDying()) return;
+
+    // Additional check: verify bullet and enemy are in THIS scene
+    if (bulletSprite.scene !== this || enemyEntity.scene !== this) return;
 
     // Disable bullet completely to prevent further collisions
     bulletSprite.setActive(false);

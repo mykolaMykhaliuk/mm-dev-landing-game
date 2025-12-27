@@ -41,4 +41,18 @@ export class WeaponManager {
   getAllWeapons(): WeaponType[] {
     return Array.from(this.weapons.keys());
   }
+
+  // Reset weapons for new scene to prevent stale collision handlers
+  resetForNewScene(newScene: Phaser.Scene): void {
+    const gun = this.weapons.get(WeaponType.GUN) as Gun;
+    const sword = this.weapons.get(WeaponType.SWORD) as Sword;
+    
+    if (gun && gun.resetForNewScene) {
+      gun.resetForNewScene(newScene);
+    }
+    
+    if (sword && sword.resetForNewScene) {
+      sword.resetForNewScene(newScene);
+    }
+  }
 }

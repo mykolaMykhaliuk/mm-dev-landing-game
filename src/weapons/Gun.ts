@@ -21,6 +21,27 @@ export class Gun implements IWeapon {
     });
   }
 
+  // Clean up all bullets when changing scenes
+  cleanup(): void {
+    this.bullets.clear(true, true); // Remove and destroy all bullets
+  }
+
+  // Reset bullet pool for new scene
+  resetForNewScene(newScene: Phaser.Scene): void {
+    // Clear all existing bullets
+    this.bullets.clear(true, true);
+    
+    // Update scene reference
+    this.scene = newScene;
+    
+    // Create new bullet group for the new scene
+    this.bullets = newScene.physics.add.group({
+      classType: Phaser.Physics.Arcade.Sprite,
+      maxSize: 50,
+      runChildUpdate: true,
+    });
+  }
+
   attack(time: number, pointer: Phaser.Input.Pointer, player: Player): void {
     this.attacking = true;
     this.shoot(pointer, player);
@@ -85,9 +106,10 @@ export class Gun implements IWeapon {
 
       this.scene.time.delayedCall(2000, () => {
         depthUpdateTimer.remove();
-        if (bullet.active) {
+        if (bullet && bullet.active) {
           bullet.setActive(false);
           bullet.setVisible(false);
+          bullet.setVelocity(0, 0);
           if (bullet.body) {
             bullet.body.enable = false;
           }
