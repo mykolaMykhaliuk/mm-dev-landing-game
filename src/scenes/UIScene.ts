@@ -13,6 +13,9 @@ export class UIScene extends Phaser.Scene {
   private score: number = 0;
   private gameOverContainer!: Phaser.GameObjects.Container;
 
+  // Multiplayer UI
+  private playerCountText!: Phaser.GameObjects.Text;
+
   constructor() {
     super({ key: 'UIScene' });
   }
@@ -25,7 +28,45 @@ export class UIScene extends Phaser.Scene {
     this.createScoreDisplay();
     this.createControls();
     this.createGameOverScreen();
+    this.createMultiplayerIndicator();
     this.setupEvents();
+  }
+
+  private createMultiplayerIndicator(): void {
+    const isOffline = (window as any).__OFFLINE_MODE__ === true;
+
+    const x = this.cameras.main.width - 20;
+    const y = 70;
+
+    // Connection status indicator
+    const statusDot = this.add.circle(0, 0, 5, isOffline ? 0x888888 : 0x00ff00);
+    const statusText = this.add.text(10, -7, isOffline ? 'OFFLINE' : 'ONLINE', {
+      fontSize: '12px',
+      color: isOffline ? '#888888' : '#00ff00',
+    });
+
+    // Player count
+    this.playerCountText = this.add.text(10, 8, isOffline ? '' : 'Players: 1', {
+      fontSize: '11px',
+      color: '#aaaaaa',
+    });
+
+    this.add.container(x - 70, y, [
+      statusDot,
+      statusText,
+      this.playerCountText
+    ]);
+
+    // Pulse animation for online indicator
+    if (!isOffline) {
+      this.tweens.add({
+        targets: statusDot,
+        alpha: { from: 1, to: 0.5 },
+        duration: 1000,
+        yoyo: true,
+        repeat: -1,
+      });
+    }
   }
 
   private createHealthBar(): void {
@@ -409,5 +450,25 @@ export class UIScene extends Phaser.Scene {
 
   getScore(): number {
     return this.score;
+  }
+
+  // Multiplayer methods
+  updatePlayerCount(count: number): void {
+    if (this.playerCountText) {
+      this.playerCountText.setText(`Players: ${count}`);
+    }
+  }
+
+  setNetworkScore(score: number): void {
+    this.score = score;
+    this.scoreText.setText(this.score.toString());
+
+    // Score pop effect
+    this.tweens.add({
+      targets: this.scoreText,
+      scale: 1.3,
+      duration: 100,
+      yoyo: true,
+    });
   }
 }

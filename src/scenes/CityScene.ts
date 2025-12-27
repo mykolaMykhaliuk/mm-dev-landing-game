@@ -5,6 +5,8 @@ import { Wizard } from '../entities/Wizard';
 import { Ammo } from '../entities/Ammo';
 import { cartToIso, isoToCart } from '../utils/IsometricUtils';
 import { WeaponType } from '../weapons/IWeapon';
+import { NetworkManager, PlayerState, EnemyState, GameState } from '../network/NetworkManager';
+import { NetworkPlayer } from '../network/NetworkPlayer';
 
 interface DoorData {
   tileX: number;
@@ -44,6 +46,14 @@ export class CityScene extends Phaser.Scene {
   private baseSpawnDelay: number = 5000;
   private maxEnemies: number = 10;
   private baseMaxEnemies: number = 10;
+
+  // Multiplayer
+  private networkManager!: NetworkManager;
+  private remotePlayers: Map<string, NetworkPlayer> = new Map();
+  private serverEnemies: Map<string, Enemy> = new Map();
+  private isOfflineMode: boolean = false;
+  private lastPositionUpdate: number = 0;
+  private positionUpdateInterval: number = 50; // 20Hz
 
   // Data passed from BuildingScene when returning
   private fromBuildingId?: number;
@@ -121,22 +131,197 @@ export class CityScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Check for offline mode
+    this.isOfflineMode = (window as any).__OFFLINE_MODE__ === true;
+
     this.createMap();
     this.createPlayer();
     this.createWizard();
     this.createEnemyGroup();
     this.createAmmoGroup();
-    this.spawnInitialEnemies();
+
+    // Only spawn enemies locally in offline mode
+    if (this.isOfflineMode) {
+      this.spawnInitialEnemies();
+    }
+
     this.spawnAmmoItems();
     this.setupCamera();
     this.setupCollisions();
     this.setupEvents();
+
+    // Setup multiplayer if online
+    if (!this.isOfflineMode) {
+      this.setupMultiplayer();
+    }
 
     // Get current score from UIScene to maintain difficulty
     const uiScene = this.scene.get('UIScene') as any;
     if (uiScene && uiScene.getScore) {
       this.updateDifficultyBasedOnScore(uiScene.getScore());
     }
+  }
+
+  private setupMultiplayer(): void {
+    this.networkManager = NetworkManager.getInstance();
+
+    // Get initial game state
+    const initialState = (window as any).__INITIAL_GAME_STATE__ as GameState;
+    if (initialState) {
+      // Spawn existing players
+      initialState.players.forEach((playerData: PlayerState) => {
+        if (playerData.id !== this.networkManager.getPlayerId()) {
+          this.addRemotePlayer(playerData);
+        }
+      });
+
+      // Spawn existing enemies from server
+      initialState.enemies.forEach((enemyData: EnemyState) => {
+        this.spawnServerEnemy(enemyData);
+      });
+    }
+
+    // Setup network event listeners
+    this.setupNetworkEvents();
+  }
+
+  private setupNetworkEvents(): void {
+    // Player events
+    this.networkManager.on<PlayerState>('playerJoined', (data) => {
+      console.log('Player joined:', data.id);
+      this.addRemotePlayer(data);
+    });
+
+    this.networkManager.on<string>('playerLeft', (playerId) => {
+      console.log('Player left:', playerId);
+      this.removeRemotePlayer(playerId);
+    });
+
+    this.networkManager.on<PlayerState & { id: string }>('playerMoved', (data) => {
+      const remotePlayer = this.remotePlayers.get(data.id);
+      if (remotePlayer) {
+        remotePlayer.updateFromServer(data);
+      }
+    });
+
+    this.networkManager.on<{ id: string; weapon: string; direction: { x: number; y: number } }>('playerAttacked', (data) => {
+      const remotePlayer = this.remotePlayers.get(data.id);
+      if (remotePlayer) {
+        remotePlayer.showAttack(data.weapon as 'GUN' | 'SWORD', data.direction);
+      }
+    });
+
+    // Enemy events
+    this.networkManager.on<EnemyState>('enemySpawned', (data) => {
+      this.spawnServerEnemy(data);
+    });
+
+    this.networkManager.on<EnemyState[]>('enemiesUpdated', (enemies) => {
+      enemies.forEach((enemyData) => {
+        const enemy = this.serverEnemies.get(enemyData.id);
+        if (enemy && enemy.active) {
+          // Smoothly move enemy to server position
+          this.tweens.add({
+            targets: enemy,
+            x: enemyData.x,
+            y: enemyData.y,
+            duration: 100,
+            ease: 'Linear'
+          });
+        }
+      });
+    });
+
+    this.networkManager.on<{ enemyId: string; health: number }>('enemyHit', (data) => {
+      const enemy = this.serverEnemies.get(data.enemyId);
+      if (enemy) {
+        enemy.setServerHealth(data.health);
+      }
+    });
+
+    this.networkManager.on<string>('enemyDied', (enemyId) => {
+      const enemy = this.serverEnemies.get(enemyId);
+      if (enemy && !enemy.isEnemyDying()) {
+        enemy.die();
+        this.serverEnemies.delete(enemyId);
+      }
+    });
+
+    // Score events
+    this.networkManager.on<number>('scoreUpdated', (score) => {
+      const uiScene = this.scene.get('UIScene') as any;
+      if (uiScene) {
+        uiScene.setNetworkScore(score);
+      }
+      this.updateDifficultyBasedOnScore(score);
+    });
+
+    // Scene change events
+    this.networkManager.on<{ scene: string; buildingId?: number }>('sceneChange', (data) => {
+      if (data.scene === 'building' && data.buildingId !== undefined) {
+        this.scene.start('BuildingScene', {
+          buildingId: data.buildingId,
+          playerHealth: this.player.getHealth(),
+          playerAmmo: this.player.getAmmo(),
+          playerArmor: this.player.getArmor(),
+          currentWeapon: this.player.getCurrentWeaponType(),
+          isPortfolio: false, // Battle building for multiplayer
+        });
+      }
+    });
+  }
+
+  private addRemotePlayer(data: PlayerState): void {
+    if (this.remotePlayers.has(data.id)) return;
+
+    const remotePlayer = new NetworkPlayer(this, data.id, data.x, data.y);
+    this.remotePlayers.set(data.id, remotePlayer);
+
+    // Update player count in UI
+    const uiScene = this.scene.get('UIScene') as any;
+    if (uiScene && uiScene.updatePlayerCount) {
+      uiScene.updatePlayerCount(this.remotePlayers.size + 1);
+    }
+  }
+
+  private removeRemotePlayer(playerId: string): void {
+    const remotePlayer = this.remotePlayers.get(playerId);
+    if (remotePlayer) {
+      remotePlayer.destroy();
+      this.remotePlayers.delete(playerId);
+
+      // Update player count in UI
+      const uiScene = this.scene.get('UIScene') as any;
+      if (uiScene && uiScene.updatePlayerCount) {
+        uiScene.updatePlayerCount(this.remotePlayers.size + 1);
+      }
+    }
+  }
+
+  private spawnServerEnemy(data: EnemyState): void {
+    if (this.serverEnemies.has(data.id)) return;
+
+    const enemy = new Enemy(this, data.x, data.y);
+    enemy.setServerId(data.id);
+    enemy.setPlayer(this.player);
+    enemy.setServerControlled(true);
+    this.enemies.add(enemy);
+    this.serverEnemies.set(data.id, enemy);
+  }
+
+  private sendPlayerUpdate(): void {
+    if (this.isOfflineMode || !this.networkManager) return;
+
+    this.networkManager.sendPlayerMove({
+      x: this.player.x,
+      y: this.player.y,
+      direction: {
+        x: this.player.lastDirection.x,
+        y: this.player.lastDirection.y
+      },
+      health: this.player.getHealth(),
+      weapon: this.player.getCurrentWeaponType() === WeaponType.GUN ? 'GUN' : 'SWORD'
+    });
   }
 
   private createMap(): void {
@@ -538,7 +723,15 @@ export class CityScene extends Phaser.Scene {
     hitEffect.setDepth(bulletSprite.y + 10);
     this.time.delayedCall(150, () => hitEffect.destroy());
 
-    enemyEntity.takeDamage(20);
+    // In multiplayer, request hit from server
+    if (!this.isOfflineMode && this.networkManager) {
+      const serverId = enemyEntity.getServerId();
+      if (serverId) {
+        this.networkManager.requestHit(serverId, 20, 'GUN');
+      }
+    } else {
+      enemyEntity.takeDamage(20);
+    }
   }
 
   private handleBulletBuildingCollision(
@@ -671,13 +864,31 @@ export class CityScene extends Phaser.Scene {
     this.player.update(time, delta);
     this.wizard.update(time, delta);
 
+    // Update remote players
+    this.remotePlayers.forEach((remotePlayer) => {
+      remotePlayer.update(time, delta);
+    });
+
     // Update obstruction transparency based on player position
     this.updateObstructionTransparency();
 
-    // Spawn enemies periodically
-    if (time > this.spawnTimer) {
+    // Send position updates at fixed interval (multiplayer)
+    if (!this.isOfflineMode && time - this.lastPositionUpdate > this.positionUpdateInterval) {
+      this.sendPlayerUpdate();
+      this.lastPositionUpdate = time;
+    }
+
+    // Spawn enemies periodically (only in offline mode)
+    if (this.isOfflineMode && time > this.spawnTimer) {
       this.spawnEnemy();
       this.spawnTimer = time + this.spawnDelay;
     }
+  }
+
+  shutdown(): void {
+    // Clean up remote players
+    this.remotePlayers.forEach((player) => player.destroy());
+    this.remotePlayers.clear();
+    this.serverEnemies.clear();
   }
 }

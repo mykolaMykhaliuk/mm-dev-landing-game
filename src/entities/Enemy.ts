@@ -14,6 +14,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private player: Player | null = null;
   private isDying: boolean = false;
 
+  // Multiplayer properties
+  private serverId: string | null = null;
+  private serverControlled: boolean = false;
+
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'enemy_bug');
 
@@ -139,7 +143,44 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     return false;
   }
 
-  private die(): void {
+  getHealth(): number {
+    return this.health;
+  }
+
+  isEnemyDying(): boolean {
+    return this.isDying;
+  }
+
+  // Multiplayer methods
+  setServerId(id: string): void {
+    this.serverId = id;
+  }
+
+  getServerId(): string | null {
+    return this.serverId;
+  }
+
+  setServerControlled(controlled: boolean): void {
+    this.serverControlled = controlled;
+  }
+
+  isServerControlled(): boolean {
+    return this.serverControlled;
+  }
+
+  setServerHealth(health: number): void {
+    this.health = health;
+    // Visual feedback for damage
+    if (health < 30) {
+      this.setTint(0xffffff);
+      this.scene.time.delayedCall(50, () => {
+        if (this.active) this.clearTint();
+      });
+    }
+  }
+
+  // Make die public for server-triggered deaths
+  die(): void {
     // Prevent multiple die() calls
     if (this.isDying) return;
     this.isDying = true;
@@ -149,11 +190,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (this.body) {
       this.body.enable = false;
     }
-    
+
     // Mark as inactive immediately to prevent collision callbacks
     this.setActive(false);
 
-    this.scene.events.emit('enemyKilled', 10);
+    // Only emit locally if not server controlled
+    if (!this.serverControlled) {
+      this.scene.events.emit('enemyKilled', 10);
+    }
 
     // Explosion particle effect
     const explosion = this.scene.add.particles(
@@ -184,13 +228,5 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.destroy();
       },
     });
-  }
-
-  getHealth(): number {
-    return this.health;
-  }
-
-  isEnemyDying(): boolean {
-    return this.isDying;
   }
 }
