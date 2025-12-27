@@ -658,14 +658,20 @@ export class BuildingScene extends Phaser.Scene {
     const keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     keyE.on('down', () => this.tryExitBuilding());
 
-    // Enemy killed event - store handler for cleanup
+    // Enemy killed event - remove existing listener first to prevent duplicates
+    if (this.enemyKilledHandler) {
+      this.events.off('enemyKilled', this.enemyKilledHandler);
+    }
     this.enemyKilledHandler = (points: number) => {
       const uiScene = this.scene.get('UIScene');
       uiScene.events.emit('addScore', points);
     };
     this.events.on('enemyKilled', this.enemyKilledHandler);
 
-    // Player died event - store handler for cleanup
+    // Player died event - remove existing listener first to prevent duplicates
+    if (this.playerDiedHandler) {
+      this.events.off('playerDied', this.playerDiedHandler);
+    }
     this.playerDiedHandler = () => {
       this.scene.pause();
       const uiScene = this.scene.get('UIScene');
@@ -676,6 +682,10 @@ export class BuildingScene extends Phaser.Scene {
     // Listen for score updates for difficulty scaling
     if (!this.isPortfolioBuilding) {
       const uiScene = this.scene.get('UIScene');
+      // Remove existing listener first to prevent duplicates
+      if (this.scoreUpdatedHandler) {
+        uiScene.events.off('scoreUpdated', this.scoreUpdatedHandler);
+      }
       this.scoreUpdatedHandler = (newScore: number) => {
         this.updateDifficultyBasedOnScore(newScore);
       };
